@@ -27,6 +27,9 @@
 #define DATA_PIN  11  // or MOSI
 #define CS_PIN    10  // or SS
 
+//static int curX[] = {0, 1, 2};
+static int curX = 1;
+
 // SPI hardware interface
 MD_MAX72XX mx = MD_MAX72XX(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
 // Arbitrary pins
@@ -39,15 +42,15 @@ bool changeState(void)
 
 #if USE_SWITCH_INPUT
 
-  static int8_t	lastStatus = HIGH;
-  int8_t	status = digitalRead(SWITCH_PIN);
+  static int8_t  lastStatus = HIGH;
+  int8_t  status = digitalRead(SWITCH_PIN);
 
   b = (lastStatus == HIGH) && (status == LOW);
   lastStatus = status;
 #else
 //TODO LEFT THIS CODE IN AS IT'S ON A TIMER, WHICH MAY BE USEFUL FOR SCREENSAVER EFFECTS
-  static uint32_t	lastTime = 0;
-  static uint8_t	repeatCount = 0;
+  static uint32_t lastTime = 0;
+  static uint8_t  repeatCount = 0;
 
   if (repeatCount == 0)
     repeatCount = REPEATS_PRESET;
@@ -62,28 +65,43 @@ bool changeState(void)
   return(b);
 }
 
-void transformDemo(MD_MAX72XX::transformType_t tt, bool bNew, int row)
+void transformDemo(MD_MAX72XX::transformType_t tt, String dir, bool bNew, int curY)
 {
   static uint32_t lastTime = 0;
 
   if (bNew)
   {
-    //mx.clear();
-
-    for (uint8_t i=0; i<MAX_DEVICES; i++)
-    //mx.setChar(((i+1)*COL_SIZE)-1, 'o'+i);
-    mx.setPoint(0, row, true);
-    mx.setPoint(1, row, true);
-    mx.setPoint(2, row, true);
-    mx.setPoint(0, row + 1, true);
-    mx.setPoint(1, row + 1, true);
-    mx.setPoint(2, row + 1, true);
+    for (int i = curX-1; i < curX+2; i++) { //TODO: 3 WILL CHANGE TO 2 THEN 1 BASED ON LENGTH
+      mx.setPoint(i, curY, true);
+      mx.setPoint(i, curY + 1, true);
+    }
+    Serial.println("Hit button!");
     lastTime = millis();
   }
 
   if (millis() - lastTime >= DELAYTIME)
   {
-    mx.transform(0, MAX_DEVICES-1, tt);
+    if (dir.equals("left")) {
+      Serial.println("Going left");
+      mx.setPoint(curX - 1, curY, false);
+      mx.setPoint(curX - 1, curY + 1, false);
+      
+      for (int i = curX-1; i < curX+2; i++) { //TODO: 3 WILL CHANGE TO 2 THEN 1 BASED ON LENGTH
+        mx.setPoint(i+1, curY, true);
+        mx.setPoint(i+1, curY + 1, true);
+      }
+      curX = curX + 1;
+    } else {
+      Serial.println("Going right");
+      mx.setPoint(curX + 1, curY, false);
+      mx.setPoint(curX + 1, curY + 1, false);
+      
+      for (int i = curX+1; i > curX-2; i--) { //TODO: 3 WILL CHANGE TO 2 THEN 1 BASED ON LENGTH
+        mx.setPoint(i-1, curY, true);
+        mx.setPoint(i-1, curY + 1, true);
+      }
+      curX = curX - 1;
+    }
     lastTime = millis();
   }
 }
@@ -106,28 +124,26 @@ void loop()
 {
   static int8_t tState = 0;
   static bool bNew = true;
-  static int row = -2;
+  static int curY = -2;
 
   if (bNew)
   {
-    //tState = (tState+1) % 2;
-    //Serial.print("State: "); Serial.println(tState);
-    row = row + 2;
+    curY = curY + 2;
   }
 
-  if (mx.getPoint(7,row)) {
+  if (mx.getPoint(7,curY)) {
     tState = 0;
-    Serial.println("Hit right side");
-  }
-  if (mx.getPoint(0,row)) {
-    tState = 1;
     Serial.println("Hit left side");
+  }
+  if (mx.getPoint(0,curY)) {
+    tState = 1;
+    Serial.println("Hit right side");
   }
 
   switch (tState)
   {
-    case 0: transformDemo(MD_MAX72XX::TSU, bNew, row);  break;
-    case 1: transformDemo(MD_MAX72XX::TSD, bNew, row);  break;
+    case 0: transformDemo(MD_MAX72XX::TSU, "right", bNew, curY);  break;
+    case 1: transformDemo(MD_MAX72XX::TSD, "left", bNew, curY);  break;
     //case 7: transformDemo(MD_MAX72XX::TINV, bNew);  break; //TODO THIS IS A GREAT STATE FOR LOSING
     default:  tState = 0; // just in case
   }
