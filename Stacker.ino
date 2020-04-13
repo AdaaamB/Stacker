@@ -11,7 +11,7 @@
 #define SWITCH_PIN  9 // switch pin if enabled - active LOW
 
 // We always wait a bit between updates of the display
-#define  DELAYTIME  500  // in milliseconds
+static int DELAYTIME = 500;  // in milliseconds
 
 // Number of times to repeat the transformation animations
 #define REPEATS_PRESET  16
@@ -77,18 +77,23 @@ void transformDemo(MD_MAX72XX::transformType_t tt, String dir, bool bNew)
   if (bNew)
   {
     Serial.print("prevX is "); Serial.print(prevX); Serial.print(" curX is "); Serial.println(curX);
-    if (prevX != curX && prevX + len != curX) { //TODO check this works and need to fall the excess off (remove it)!
-      if (prevX < curX) {
-        len = len - (curX - prevX);
-        prevX = curX + 1;
-      } else {
-        len = len - (prevX - curX);
+    if (prevX != curX) { // && prevX + len != curX
+      len = len - abs(curX - prevX);
+      if (prevX < curX) { //overhang on the left
+        mx.setPoint(curX + len, curY, false);
+        mx.setPoint(curX + len, curY + 1, false); //TODO - ANIMATE THIS FOR SEXINESS
+        prevX = curX;
+      } else { //overhang on the right
+        mx.setPoint(curX, curY, false);
+        mx.setPoint(curX, curY + 1, false);
+        curX = curX + 1;
         prevX = curX;
       }
     }
     Serial.print("len is "); Serial.println(len);
  
     curY = curY + 2;
+    DELAYTIME = DELAYTIME - 35; //TODO - THERE IS A BUG ONCE IT GETS TOWARDS THE TOP DUE TO SPEED?
     
     for (int i = curX; i < curX + len; i++) {
       mx.setPoint(i, curY, true);
