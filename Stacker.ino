@@ -27,11 +27,13 @@
 #define DATA_PIN  11  // or MOSI
 #define CS_PIN    10  // or SS
 
-static int prevX[3];
+static int prevX = 0;
 static int curX = 0;
 static int curY = -2;
+static int len = 3;
 static bool hit = false;
 static bool button = false;
+static bool start = true;
 
 // SPI hardware interface
 MD_MAX72XX mx = MD_MAX72XX(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
@@ -74,9 +76,21 @@ void transformDemo(MD_MAX72XX::transformType_t tt, String dir, bool bNew)
 
   if (bNew)
   {
+    Serial.print("prevX is "); Serial.print(prevX); Serial.print(" curX is "); Serial.println(curX);
+    if (prevX != curX && prevX + len != curX) { //TODO check this works and need to fall the excess off (remove it)!
+      if (prevX < curX) {
+        len = len - (curX - prevX);
+        prevX = curX + 1;
+      } else {
+        len = len - (prevX - curX);
+        prevX = curX;
+      }
+    }
+    Serial.print("len is "); Serial.println(len);
+ 
     curY = curY + 2;
     
-    for (int i = curX; i < curX+3; i++) { //TODO: 3 WILL CHANGE TO 2 THEN 1 BASED ON LENGTH
+    for (int i = curX; i < curX + len; i++) {
       mx.setPoint(i, curY, true);
       mx.setPoint(i, curY + 1, true);
     }
@@ -87,25 +101,25 @@ void transformDemo(MD_MAX72XX::transformType_t tt, String dir, bool bNew)
   if (millis() - lastTime >= DELAYTIME)
   {
     if (dir.equals("left")) {
-      //Serial.println("Going left");
-      mx.setPoint(curX, curY, false);
-      mx.setPoint(curX, curY + 1, false);
-      
-      for (int i = curX; i < curX+3; i++) { //TODO: 3 WILL CHANGE TO 2 THEN 1 BASED ON LENGTH
-        mx.setPoint(i+1, curY, true);
-        mx.setPoint(i+1, curY + 1, true);
-      }
       curX++;
-    } else {
-      //Serial.println("Going right");
-      mx.setPoint(curX + 2, curY, false);
-      mx.setPoint(curX + 2, curY + 1, false);
+      //Serial.println("Going left");
+      mx.setPoint(curX - 1, curY, false);
+      mx.setPoint(curX - 1, curY + 1, false);
       
-      for (int i = curX; i > curX-3; i--) { //TODO: 3 WILL CHANGE TO 2 THEN 1 BASED ON LENGTH
-        mx.setPoint(i+1, curY, true);
-        mx.setPoint(i+1, curY + 1, true);
+      for (int i = curX; i < curX + len; i++) {
+        mx.setPoint(i, curY, true);
+        mx.setPoint(i, curY + 1, true);
       }
+    } else {
       curX--;
+      //Serial.println("Going right");
+      mx.setPoint(curX + len, curY, false);
+      mx.setPoint(curX + len, curY + 1, false);
+      
+      for (int i = curX; i < curX + len; i++) {
+        mx.setPoint(i, curY, true);
+        mx.setPoint(i, curY + 1, true);
+      }
     }
     lastTime = millis();
     hit = false;
@@ -135,12 +149,12 @@ void loop()
   if (mx.getPoint(7,curY) and hit == false) {
     tState = 0;
     hit = true;
-    Serial.println("Hit left side");
+    //Serial.println("Hit left side");
   }
   if (mx.getPoint(0,curY) and hit == false) {
     tState = 1;
     hit = true;
-    Serial.println("Hit right side");
+    //Serial.println("Hit right side");
   }
 
   switch (tState)
@@ -152,6 +166,10 @@ void loop()
   }
 
   if (digitalRead(SWITCH_PIN) == LOW && button) {
+    if (start) {
+      prevX = curX;
+      start = 0;
+    }
     bNew = true;
     button = false;
   } else {
