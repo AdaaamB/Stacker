@@ -4,6 +4,8 @@
 
 #include <MD_MAX72xx.h>
 #include <SPI.h>
+#include <MD_Parola.h>
+#include "Font5x3.h"
 
 // Use a button to transfer between transformations or just do it on a timer basis
 #define USE_SWITCH_INPUT  1
@@ -11,7 +13,8 @@
 #define SWITCH_PIN  9 // switch pin if enabled - active LOW
 
 // We always wait a bit between updates of the display
-static int DELAYTIME = 500;  // in milliseconds
+static int DELAYTIME = 300;  // in milliseconds
+static int buttonDelay = 300;
 
 // Number of times to repeat the transformation animations
 #define REPEATS_PRESET  16
@@ -27,16 +30,24 @@ static int DELAYTIME = 500;  // in milliseconds
 #define DATA_PIN  11  // or MOSI
 #define CS_PIN    10  // or SS
 
+uint8_t scrollSpeed = 25;    // default frame delay value
+textEffect_t scrollEffect = PA_SCROLL_RIGHT;
+textPosition_t scrollAlign = PA_CENTER;
+uint16_t scrollPause = 1000; // in milliseconds
+
 static int prevX = 0;
 static int curX = 0;
 static int curY = -2;
 static int len = 3;
 static bool hit = false;
 static bool button = false;
+static uint32_t buttonTime = 0;
+static uint32_t buttonLimit = 0;
 static bool start = true;
 
 // SPI hardware interface
 MD_MAX72XX mx = MD_MAX72XX(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
+MD_Parola P = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
 // Arbitrary pins
 //MD_MAX72XX mx = MD_MAX72XX(HARDWARE_TYPE, DATA_PIN, CLK_PIN, CS_PIN, MAX_DEVICES);
 
@@ -77,23 +88,32 @@ void transformDemo(MD_MAX72XX::transformType_t tt, String dir, bool bNew)
   if (bNew)
   {
     Serial.print("prevX is "); Serial.print(prevX); Serial.print(" curX is "); Serial.println(curX);
-    if (prevX != curX) { // && prevX + len != curX
+    if (prevX != curX) {
       len = len - abs(curX - prevX);
       if (prevX < curX) { //overhang on the left
         mx.setPoint(curX + len, curY, false);
-        mx.setPoint(curX + len, curY + 1, false); //TODO - ANIMATE THIS FOR SEXINESS
+        mx.setPoint(curX + len, curY + 1, false);
+        mx.setPoint(curX + len + 1, curY, false);
+        mx.setPoint(curX + len + 1, curY + 1, false); //TODO - ANIMATE THIS FOR SEXINESS and there must be a better way
         prevX = curX;
       } else { //overhang on the right
         mx.setPoint(curX, curY, false);
         mx.setPoint(curX, curY + 1, false);
+        mx.setPoint(curX - 1, curY, false);
+        mx.setPoint(curX - 1, curY + 1, false);
         curX = curX + 1;
         prevX = curX;
       }
     }
     Serial.print("len is "); Serial.println(len);
+
+    if (len < 1) reset(0);
+    if (curY + 2 == 32) reset(1);
  
     curY = curY + 2;
-    DELAYTIME = DELAYTIME - 35; //TODO - THERE IS A BUG ONCE IT GETS TOWARDS THE TOP DUE TO SPEED?
+    DELAYTIME = DELAYTIME - 15;
+    Serial.print("curY is "); Serial.println(curY);
+    Serial.print("delay time "); Serial.println(DELAYTIME);
     
     for (int i = curX; i < curX + len; i++) {
       mx.setPoint(i, curY, true);
@@ -132,6 +152,30 @@ void transformDemo(MD_MAX72XX::transformType_t tt, String dir, bool bNew)
   }
 }
 
+void reset(int win) {
+  DELAYTIME = 300;
+  prevX = 0;
+  curX = 0;
+  curY = -2;
+  len = 3;
+  hit = false;
+  button = false;
+  buttonTime = 0;
+  buttonLimit = 0;
+  start = true;
+  mx.clear();
+
+  if (win) {
+    P.print("winner");
+    delay(500);
+    mx.clear();
+  } else {
+    P.print("loser");
+    delay(1500);
+    mx.clear();
+  }
+}
+
 void setup()
 {
   mx.begin();
@@ -144,6 +188,11 @@ void setup()
 
   Serial.begin(57600);
   Serial.println("[Transform Test]");
+  P.begin();
+  P.setFont(_Fixed_5x3);
+  P.print("stack");
+  delay(500);
+  mx.clear();
 }
 
 void loop()
@@ -170,13 +219,15 @@ void loop()
     default:  tState = 0; // just in case
   }
 
-  if (digitalRead(SWITCH_PIN) == LOW && button) {
-    if (start) {
-      prevX = curX;
-      start = 0;
-    }
-    bNew = true;
-    button = false;
+  if (digitalRead(SWITCH_PIN) == LOW && button && millis() > buttonLimit) {
+      if (start) {
+        prevX = curX;
+        start = 0;
+      }
+      bNew = true; //TODO - THIS DOESN'T WORK
+      button = false;
+      buttonTime = millis();
+      buttonLimit = buttonTime + buttonDelay;
   } else {
     bNew = false;
   }
