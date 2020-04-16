@@ -99,15 +99,18 @@ void transformDemo(MD_MAX72XX::transformType_t tt, String dir, bool bNew)
       } else { //overhang on the right
         mx.setPoint(curX, curY, false);
         mx.setPoint(curX, curY + 1, false);
-        mx.setPoint(curX - 1, curY, false);
-        mx.setPoint(curX - 1, curY + 1, false);
-        curX = curX + 1;
+        if (prevX - curX == 2) {
+          mx.setPoint(curX + 1, curY, false);
+          mx.setPoint(curX + 1, curY + 1, false);
+          curX++;
+        }
+        curX++;
         prevX = curX;
       }
     }
     Serial.print("len is "); Serial.println(len);
 
-    if (len < 1) reset(0);
+    if (len < 1) reset(0); //TODO - ANIMATE/FLASH THE LOST PIXELS?
     if (curY + 2 == 32) reset(1);
  
     curY = curY + 2;
@@ -166,11 +169,16 @@ void reset(int win) {
   mx.clear();
 
   if (win) {
-    P.print("winner");
-    delay(500);
+    for (int i = 0; i < 15; i++) { flash_every_other(); }
+    for (int i = 0; i < 4; i++) { 
+      P.print("WINNER");
+      delay(500);
+      mx.clear();
+      delay(500);
+    }
     mx.clear();
   } else {
-    P.print("loser");
+    P.print("LOSER");
     delay(1500);
     mx.clear();
   }
@@ -190,8 +198,9 @@ void setup()
   Serial.println("[Transform Test]");
   P.begin();
   P.setFont(_Fixed_5x3);
-  P.print("stack");
-  delay(500);
+  P.setTextAlignment(PA_CENTER);
+  P.print("STACK");
+  delay(1000);
   mx.clear();
 }
 
@@ -233,4 +242,26 @@ void loop()
   }
 
   //bNew = changeState();
+}
+
+void flash_every_other(){
+  for(int a=0; a<4; a++) {
+    for (int i=0; i<8; i+=2){
+     mx.setRow(a,i,170);
+     mx.setRow(a,i+1,85);
+    }
+  }
+  
+  delay(50);
+  mx.clear();
+   
+   for(int a=0; a<4; a++) {
+    for (int i=0; i<8; i+=2){
+     mx.setRow(a,i,85);
+     mx.setRow(a,i+1,170);
+    }
+  }
+
+  delay(50);
+  mx.clear();
 }
