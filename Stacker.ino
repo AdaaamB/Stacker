@@ -39,6 +39,7 @@ static int prevX = 0;
 static int curX = 0;
 static int curY = -2;
 static int len = 3;
+static int prevLen = 3;
 static bool hit = false;
 static bool button = false;
 static uint32_t buttonTime = 0;
@@ -88,31 +89,43 @@ void transformDemo(MD_MAX72XX::transformType_t tt, String dir, bool bNew)
   if (bNew)
   {
     Serial.print("prevX is "); Serial.print(prevX); Serial.print(" curX is "); Serial.println(curX);
+    Serial.print(" curX + prevLen - 3 "); Serial.println(curX + prevLen - 3);
     if (prevX != curX) {
       len = len - abs(curX - prevX);
       if (prevX < curX) { //overhang on the left
         mx.setPoint(curX + len, curY, false);
         mx.setPoint(curX + len, curY + 1, false);
-        mx.setPoint(curX + len + 1, curY, false);
-        mx.setPoint(curX + len + 1, curY + 1, false); //TODO - ANIMATE THIS FOR SEXINESS and there must be a better way
+        if (curX - prevX == 2) {
+          mx.setPoint(curX + len + 1, curY, false);
+          mx.setPoint(curX + len + 1, curY + 1, false); //TODO - ANIMATE THIS FOR SEXINESS and there must be a better way
+        }
         prevX = curX;
       } else { //overhang on the right
+        int plus = 0;
         mx.setPoint(curX, curY, false);
         mx.setPoint(curX, curY + 1, false);
         if (prevX - curX == 2) {
           mx.setPoint(curX + 1, curY, false);
           mx.setPoint(curX + 1, curY + 1, false);
-          curX++;
+          plus++;
         }
-        curX++;
-        prevX = curX;
+        plus++;
+        prevX = curX + plus;
       }
+    } else {
+//      if (curY == 6 && len > 2) { 
+//        len--;
+//      }
+//      if (curY == 12 && len > 1) { 
+//        len--;
+//      }
     }
     Serial.print("len is "); Serial.println(len);
 
     if (len < 1) reset(0); //TODO - ANIMATE/FLASH THE LOST PIXELS?
     if (curY + 2 == 32) reset(1);
- 
+
+    prevLen = len;
     curY = curY + 2;
     DELAYTIME = DELAYTIME - 15;
     Serial.print("curY is "); Serial.println(curY);
@@ -156,17 +169,7 @@ void transformDemo(MD_MAX72XX::transformType_t tt, String dir, bool bNew)
 }
 
 void reset(int win) {
-  DELAYTIME = 300;
-  prevX = 0;
-  curX = 0;
-  curY = -2;
-  len = 3;
-  hit = false;
-  button = false;
-  buttonTime = 0;
-  buttonLimit = 0;
-  start = true;
-  mx.clear();
+  Serial.println("reset called");
 
   if (win) {
     for (int i = 0; i < 15; i++) { flash_every_other(); }
@@ -178,10 +181,32 @@ void reset(int win) {
     }
     mx.clear();
   } else {
-    P.print("LOSER");
-    delay(1500);
-    mx.clear();
+    for (int i = 0; i < 4; i++) {
+      for (int j = 0; j < prevLen; j++) {
+       mx.setPoint(curX + j, curY, true);
+       mx.setPoint(curX + j, curY + 1, true);
+      }
+       delay(300);
+      for (int j = 0; j < prevLen; j++) {
+       mx.setPoint(curX + j, curY, false);
+       mx.setPoint(curX + j, curY + 1, false);
+      }
+       delay(300);
+    }
   }
+
+  //reset vars
+  DELAYTIME = 300;
+  prevX = 0;
+  curX = 0;
+  curY = -2;
+  len = 3;
+  hit = false;
+  button = false;
+  buttonTime = 0;
+  buttonLimit = 0;
+  start = true;
+  mx.clear();
 }
 
 void setup()
