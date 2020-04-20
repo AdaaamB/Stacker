@@ -1,4 +1,4 @@
-MD_MAX72XX::fontType_t _Fixed_5x3[] PROGMEM = {
+MD_MAX72XX::fontType_t StackerFont[] PROGMEM = {
   'F', 1, 32, 127, 5,
   2, 0, 0,    // 32 - 'Space'
   4, 16, 16, 0, 16,   // 33 //1, 23,    // 33 - '!'
