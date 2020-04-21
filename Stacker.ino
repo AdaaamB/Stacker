@@ -1,5 +1,4 @@
 // Stacker
-
 #include <MD_MAX72xx.h>
 #include <SPI.h>
 #include <MD_Parola.h>
@@ -48,15 +47,14 @@ void doStacker()
 }
 
 void hitButton() {
-  Serial.print("prevX is "); Serial.print(prevX); Serial.print(" curX is "); Serial.println(curX);
   if (prevX != curX) {
-    len = len - abs(curX - prevX);
-    if (prevX < curX) {
-      mx.setRow(curX, false);
-      curX--;
-    } else {
-      mx.setRow(curX - 1, false); //TODO if it overhangs by 2?
+    len = len - abs(curX - prevX); //set len to be current len minus the difference between curX and prevX.
+    for (int i = 0; i < abs(curX - prevX); i++) { //iterate i for the difference between curX and prevX to remove 1 or 2 points.
+      int j = (dir == 0) ? curX + i : curX - len - i; //if overhang left, remove curX, else remove curX - len - i.
+      mx.setPoint(j, curY, false); //remove overhang.
+      mx.setPoint(j, curY + 1, false);
     }
+    if (prevX < curX) curX--;
     
     prevX = curX; 
     }
@@ -83,7 +81,7 @@ void reset(int win) {
       delay(500);
     }
     mx.clear();
-  } else {
+  } else { //######## TODO fix it jumping back to look like a false loss ########
     for (int i = 0; i < 4; i++) {
       for (int j = 0; j < prevLen; j++) {
        mx.setPoint(curX + j, curY, true);
@@ -98,7 +96,7 @@ void reset(int win) {
     }
   }
 
-  //reset vars TODO
+  //######## reset vars TODO ########
   
   mx.clear();
 }
