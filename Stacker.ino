@@ -47,16 +47,20 @@ void doStacker()
 }
 
 void hitButton() {
-//  if (curX > 7) { //TODO ##########
-//    len = abs(len + (7 - curX));
-//    curX = curX - (curX - 7);
-//    prevX = curX;
-//  } else 
+  if (isStart) { //if it's the first button press of the game.
+    if (curX > 7) { //if curX is off the left side of the screen.
+      len = abs(len - (curX - 7)); //set len to be the current len minus the difference between curX and 7.
+      curX = curX - (curX - 7); //set curX to be curX minus the difference between curX and 7.
+    } else if (curX < 2) { //if curX is less than 2, at least 1 point is off the right side of the screen.
+      len = (curX == 0) ? 1 : 2; //if curX is 0, set length to be 1, else set it to be 2.
+    }
+    prevX = curX; //set prevX so no more calculations are done.
+    isStart = 0; //no longer the first button press of the game.
+  }
   
   if (prevX != curX) {
     len = len - abs(curX - prevX); //set len to be current len minus the difference between curX and prevX.
     for (int i = 0; i < abs(curX - prevX); i++) { //iterate i for the difference between curX and prevX to remove 1 or 2 points.
-      Serial.print("x is "); Serial.println(curX);
       int j = (prevX < curX) ? curX - i : curX - len - i; //if overhang left, remove curX, else remove curX - len - i.
       mx.setPoint(j, curY, false); //remove overhang.
       mx.setPoint(j, curY + 1, false);
@@ -127,10 +131,6 @@ void loop()
   doStacker();
 
   if (digitalRead(SWITCH_PIN) == LOW && btnActive && millis() > btnLimit) {
-    if (isStart) {
-      prevX = curX;
-      isStart = 0;
-    }
     btnActive = 0;
     btnLimit = millis() + btnDelay;
     hitButton();
