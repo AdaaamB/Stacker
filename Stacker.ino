@@ -47,24 +47,30 @@ void doStacker()
 }
 
 void hitButton() {
+//  if (curX > 7) { //TODO ##########
+//    len = abs(len + (7 - curX));
+//    curX = curX - (curX - 7);
+//    prevX = curX;
+//  } else 
+  
   if (prevX != curX) {
     len = len - abs(curX - prevX); //set len to be current len minus the difference between curX and prevX.
     for (int i = 0; i < abs(curX - prevX); i++) { //iterate i for the difference between curX and prevX to remove 1 or 2 points.
-      int j = (dir == 0) ? curX + i : curX - len - i; //if overhang left, remove curX, else remove curX - len - i.
+      Serial.print("x is "); Serial.println(curX);
+      int j = (prevX < curX) ? curX - i : curX - len - i; //if overhang left, remove curX, else remove curX - len - i.
       mx.setPoint(j, curY, false); //remove overhang.
       mx.setPoint(j, curY + 1, false);
     }
-    if (prevX < curX) curX--;
-    
+    if (prevX < curX) curX = curX - abs(curX - prevX);
     prevX = curX; 
     }
-    
+
     if (len < 1) reset(0);
     if (curY + 2 == 32) reset(1);
 
     prevLen = len;
-    curY = curY + 2;
-    DELAYTIME = DELAYTIME - 5;
+    curY += 2;
+    DELAYTIME -= 5;
     Serial.println("Hit button!");
     btnActive = 1;
 }
@@ -117,7 +123,8 @@ void setup()
 
 void loop()
 {
-  if (digitalRead(SWITCH_PIN) == HIGH) doStacker();
+//  if (digitalRead(SWITCH_PIN) == HIGH) 
+  doStacker();
 
   if (digitalRead(SWITCH_PIN) == LOW && btnActive && millis() > btnLimit) {
     if (isStart) {
