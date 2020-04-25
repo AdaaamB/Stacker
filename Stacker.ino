@@ -46,6 +46,8 @@ void doStacker()
   }
 }
 
+//####### TODO - there's a bug as you get higher, X seems to be wrong? or doesn't match prevX.. or it's displaying wrong. #######
+
 void hitButton() {
   if (isStart) { //if it's the first button press of the game.
     if (curX > 7) { //if curX is off the left side of the screen.
@@ -65,8 +67,9 @@ void hitButton() {
       mx.setPoint(j, curY, false); //remove overhang.
       mx.setPoint(j, curY + 1, false);
     }
-    if (prevX < curX) curX = curX - abs(curX - prevX);
-    prevX = curX; 
+    if (len > 0) doFall((prevX < curX) ? curX : curX - len, curY, abs(curX - prevX)); //animate falling with either curX or curX - len depending on overhang direction, curY value and length of points fallen.
+    if (prevX < curX) curX = curX - abs(curX - prevX); //this does something about keeping X correct as the tower gets smaller ######## to rewrite
+    prevX = curX;
     }
 
     if (len < 1) reset(0);
@@ -77,6 +80,22 @@ void hitButton() {
     DELAYTIME -= 5;
     Serial.println("Hit button!");
     btnActive = 1;
+}
+
+void doFall(int x, int y, int l) { //animate falling, x coord, y coord and length.
+  bool removeIt = false;
+  if (l == 2) x--; //remove 1 from x if l is 2, as for some reason it has the wrong value.
+  for (int i = y; i > -1; i--) { //repeat until y is off the board.
+    removeIt = false; //reset removeIt to false to determine whether to perform the setPoint false.
+    for (int j = x; j < x + l; j++) { //repeat for length of points to fall, will be either 1 or 2.
+      if (!mx.getPoint(j, i)) { //if the point isn't already lit.
+        mx.setPoint(j, i, true); //light the point.
+        removeIt = true; //set removeIt to true to turn off the point later.
+      }
+    }
+    delay(50);
+    for (int j = x; j < x + l; j++) if (removeIt) mx.setPoint(j, i, false); //repeat for length of points to fall, turn off the point if it was lit in this method (removeIt val).
+  }
 }
 
 void reset(int win) {
@@ -106,8 +125,8 @@ void reset(int win) {
     }
   }
 
-  //######## reset vars TODO ########
-  
+  //reset variables.
+  dir = 1, prevX = 0, curX = 0, curY = 0, len = 3, prevLen = 3, isStart = 1, btnActive = 1, btnDelay = 300; btnLimit = 0;
   mx.clear();
 }
 
@@ -127,8 +146,7 @@ void setup()
 
 void loop()
 {
-//  if (digitalRead(SWITCH_PIN) == HIGH) 
-  doStacker();
+  if (digitalRead(SWITCH_PIN) == HIGH) doStacker();
 
   if (digitalRead(SWITCH_PIN) == LOW && btnActive && millis() > btnLimit) {
     btnActive = 0;
