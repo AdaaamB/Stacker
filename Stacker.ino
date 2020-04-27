@@ -47,8 +47,6 @@ void doStacker()
   }
 }
 
-//####### TODO - there's a bug as you get higher, X seems to be wrong? or doesn't match prevX.. or it's displaying wrong. #######
-
 void hitButton() {
   if (isStart) { //if it's the first button press of the game.
     if (curX > 7) { //if curX is off the left side of the screen.
@@ -61,7 +59,7 @@ void hitButton() {
     isStart = 0; //no longer the first button press of the game.
   }
   
-  if (prevX != curX) {
+  if (prevX != curX && prevX - prevLen != curX - len) { //if prevX and curX are different, or if prevX - prevLen are different to curX - len -- this is for when we do len--.
     len = len - abs(curX - prevX); //set len to be current len minus the difference between curX and prevX.
     for (int i = 0; i < abs(curX - prevX); i++) { //iterate i for the difference between curX and prevX to remove 1 or 2 points.
       int j = (prevX < curX) ? curX - i : curX - len - i; //if overhang left, remove curX, else remove curX - len - i.
@@ -70,16 +68,20 @@ void hitButton() {
     }
     if (len > 0) doFall((prevX < curX) ? curX : curX - len, curY, abs(curX - prevX)); //animate falling with either curX or curX - len depending on overhang direction, curY value and length of points fallen.
     if (len < 1) { reset(0); return; } //invoke reset with win = 0. return to stop further code in this method.
-    if (curY + 2 == 32) { reset(1); return; } //invoke reset with win = 1. return to stop further code in this method.
     if (prevX < curX) curX = curX - abs(curX - prevX); //this does something about keeping X correct as the tower gets smaller ######## to rewrite
-    prevX = curX;
-    }
+    
+  }
 
-    prevLen = len;
-    curY += 2;
-    DELAYTIME -= 5;
-    Serial.println("Hit button!");
-    btnActive = 1;
+  prevX = curX; //set prevX to curX for next comparison.
+  if (curY + 2 == 32) { reset(1); return; } //invoke reset with win = 1. return to stop further code in this method.
+  
+  prevLen = len; //set prevLen to len for next comparison.
+  if (curY == 8 && len == 3) len--; //if len is still 3 after curY is 5th button press, remove one from len.
+  if (curY == 18 && len == 2) len--; //if len is still 2 after curY is 10th button press, remove one from len.
+  
+  curY += 2;
+  DELAYTIME -= 5;
+  btnActive = 1;
 }
 
 void doFall(int x, int y, int l) { //animate falling, x coord, y coord and length.
@@ -99,8 +101,6 @@ void doFall(int x, int y, int l) { //animate falling, x coord, y coord and lengt
 }
 
 void reset(int win) {
-  Serial.println("reset called");
-
   if (win) {
     for (int i = 0; i < 15; i++) { flash_every_other(); }
     for (int i = 0; i < 4; i++) { 
@@ -110,7 +110,7 @@ void reset(int win) {
       delay(500);
     }
     mx.clear();
-  } else { //######## TODO fix it jumping back to look like a false loss ########
+  } else {
     for (int i = 0; i < 4; i++) { //repeat 4 times to point flash on and off.
       for (int j = 0; j < prevLen; j++) { //repeat for prevLen to flash 1, 2 or 3 points.
        mx.setPoint(curX - j, curY, true); //turn the point on.
