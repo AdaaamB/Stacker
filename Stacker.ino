@@ -32,13 +32,13 @@ void doStacker()
   static uint32_t lastTime = 0;
   if (millis() - lastTime >= DELAYTIME)
   {
-    if (curX == 0 || curX == 7 + len - 1) dir = !dir;
-    curX = (dir == 0) ? curX + 1 : curX - 1;
-    mx.setPoint(curX + 1 - (len + 1) * !dir, curY, false);
+    if (curX == 0 || curX == 7 + len - 1) dir = !dir; //if almost off the board, reverse the direction.
+    curX = (dir == 0) ? curX + 1 : curX - 1; //if dir is 0, move right, else move left.
+    mx.setPoint(curX + 1 - (len + 1) * !dir, curY, false); //remove the trail.
     mx.setPoint(curX + 1 - (len + 1) * !dir, curY + 1, false);
 
-    for (int i = 0; i < len; i++) {
-      mx.setPoint(curX - i, curY, true);
+    for (int i = 0; i < len; i++) { //repeat for len to make the trail.
+      mx.setPoint(curX - i, curY, true); //turn the point on.
       mx.setPoint(curX - i, curY + 1, true);
     }
     
@@ -68,12 +68,11 @@ void hitButton() {
       mx.setPoint(j, curY + 1, false);
     }
     if (len > 0) doFall((prevX < curX) ? curX : curX - len, curY, abs(curX - prevX)); //animate falling with either curX or curX - len depending on overhang direction, curY value and length of points fallen.
+    if (len < 1) { reset(0); return; } //invoke reset with win = 0. return to stop further code in this method.
+    if (curY + 2 == 32) { reset(1); return; } //invoke reset with win = 1. return to stop further code in this method.
     if (prevX < curX) curX = curX - abs(curX - prevX); //this does something about keeping X correct as the tower gets smaller ######## to rewrite
     prevX = curX;
     }
-
-    if (len < 1) reset(0);
-    if (curY + 2 == 32) reset(1);
 
     prevLen = len;
     curY += 2;
@@ -111,22 +110,21 @@ void reset(int win) {
     }
     mx.clear();
   } else { //######## TODO fix it jumping back to look like a false loss ########
-    for (int i = 0; i < 4; i++) {
-      for (int j = 0; j < prevLen; j++) {
-       mx.setPoint(curX + j, curY, true);
-       mx.setPoint(curX + j, curY + 1, true);
+    for (int i = 0; i < 4; i++) { //repeat 4 times to point flash on and off.
+      for (int j = 0; j < prevLen; j++) { //repeat for prevLen to flash 1, 2 or 3 points.
+       mx.setPoint(curX - j, curY, true); //turn the point on.
+       mx.setPoint(curX - j, curY + 1, true);
       }
        delay(300);
-      for (int j = 0; j < prevLen; j++) {
-       mx.setPoint(curX + j, curY, false);
-       mx.setPoint(curX + j, curY + 1, false);
+      for (int j = 0; j < prevLen; j++) { //repeat for prevLen to flash 1, 2 or 3 points.
+       mx.setPoint(curX - j, curY, false); //turn the point off.
+       mx.setPoint(curX - j, curY + 1, false);
       }
        delay(300);
     }
   }
 
-  //reset variables.
-  dir = 1, prevX = 0, curX = 0, curY = 0, len = 3, prevLen = 3, isStart = 1, btnActive = 1, btnDelay = 300; btnLimit = 0;
+  dir = 1; prevX = 0; curX = 0; curY = 0; len = 3; prevLen = 3; isStart = 1; btnActive = 1; btnLimit = 0; DELAYTIME = 150; //reset variables.
   mx.clear();
 }
 
