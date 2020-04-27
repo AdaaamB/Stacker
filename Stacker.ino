@@ -34,8 +34,9 @@ void doStacker()
   {
     if (curX == 0 || curX == 7 + len - 1) dir = !dir; //if almost off the board, reverse the direction.
     curX = (dir == 0) ? curX + 1 : curX - 1; //if dir is 0, move right, else move left.
-    mx.setPoint(curX + 1 - (len + 1) * !dir, curY, false); //remove the trail.
-    mx.setPoint(curX + 1 - (len + 1) * !dir, curY + 1, false);
+    int removePoint = (dir == 0) ? curX - len : curX + 1; //set removePoint to remove trailing point depending on direction.
+    mx.setPoint(removePoint, curY, false); //remove the trail.
+    mx.setPoint(removePoint, curY + 1, false);
 
     for (int i = 0; i < len; i++) { //repeat for len to make the trail.
       mx.setPoint(curX - i, curY, true); //turn the point on.
