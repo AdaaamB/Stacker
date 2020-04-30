@@ -1,8 +1,10 @@
 // Stacker
 #include <MD_MAX72xx.h>
 #include <MD_Parola.h>
+#include <SPI.h>
 #include <OneButton.h>
 #include "Font5x3.h"
+#include "Parola_Fonts_data.h"
 
 // Use a button to transfer between transformations or just do it on a timer basis
 #define USE_SWITCH_INPUT  1
@@ -22,8 +24,8 @@ static int DELAYTIME = 150;  // in milliseconds
 #define DATA_PIN  11  // or MOSI
 #define CS_PIN    10  // or SS
 
-int dir = 1, prevX = 0, curX = 0, curY = 0, len = 3, prevLen = 3, difficulty = 0, inProgress = 0, isStart = 1, btnActive = 1, btnDelay = 300, clicks = 0;
-uint32_t btnLimit = 0, btnMin = 0;
+int dir = 1, prevX = 0, curX = 0, curY = 0, len = 3, prevLen = 3, difficulty = 0, inProgress = 0, isStart = 1, btnActive = 1, btnDelay = 300;
+uint32_t btnLimit = 0;
 boolean btnLastState = HIGH;
 
 MD_MAX72XX mx = MD_MAX72XX(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
@@ -82,7 +84,7 @@ void hitButton() {
   if (curY == 18 && len == 2) len--; //if len is still 2 after curY is 10th button press, remove one from len.
   
   curY += 2;
-  DELAYTIME -= 5;
+  DELAYTIME -= (difficulty) ? 8 : 5;
   btnActive = 1;
 }
 
@@ -127,7 +129,7 @@ void reset(int win) {
     }
   }
 
-  dir = 1; prevX = 0; curX = 0; curY = 0; len = 3; prevLen = 3; inProgress = 0; isStart = 1; btnActive = 1; btnLimit = 0; DELAYTIME = 150; clicks = 0; //reset variables.
+  dir = 1; prevX = 0; curX = 0; curY = 0; len = 3; prevLen = 3; inProgress = 0; isStart = 1; btnActive = 1; btnLimit = 0; DELAYTIME = 150; //reset variables.
   mx.clear();
 }
 
@@ -146,10 +148,16 @@ void setup()
   P.print("STACKR");
   delay(1000);
   mx.clear();
+  scrollText("CHOOSE MODE");
+}
+
+void scrollText(char curMessage[75]) {
+  P.displayClear();
+  P.displayScroll(curMessage, PA_CENTER, PA_SCROLL_LEFT, 30);
 }
 
 void loop()
-{
+{  
   if (inProgress) {
     if (digitalRead(SWITCH_PIN) == HIGH) doStacker();
 
@@ -159,6 +167,14 @@ void loop()
       hitButton();
     }
   } else {
+    if (isStart) {
+      if (P.displayAnimate()) {
+        mx.clear();
+        P.setFont(StackerFont);
+        P.print("EASY");
+        isStart = 0;
+      }
+    }
     button.tick(); //check the status of the button for OneButton
   }
 }
@@ -170,6 +186,7 @@ void singleClick() {
 
 void doubleClick() {
   inProgress = 1;
+  isStart = 1;
   mx.clear();
   btnLimit = millis() + btnDelay;
   delay(500);
