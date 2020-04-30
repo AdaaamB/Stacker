@@ -1,12 +1,13 @@
 // Stacker
 #include <MD_MAX72xx.h>
-#include <SPI.h>
 #include <MD_Parola.h>
+#include <OneButton.h>
 #include "Font5x3.h"
 
 // Use a button to transfer between transformations or just do it on a timer basis
 #define USE_SWITCH_INPUT  1
 #define SWITCH_PIN  9 // switch pin if enabled - active LOW
+OneButton button(9, true);
 
 // We always wait a bit between updates of the display
 static int DELAYTIME = 150;  // in milliseconds
@@ -21,8 +22,9 @@ static int DELAYTIME = 150;  // in milliseconds
 #define DATA_PIN  11  // or MOSI
 #define CS_PIN    10  // or SS
 
-int dir = 1, prevX = 0, curX = 0, curY = 0, len = 3, prevLen = 3, isStart = 1, btnActive = 1, btnDelay = 300;
-uint32_t btnLimit = 0;
+int dir = 1, prevX = 0, curX = 0, curY = 0, len = 3, prevLen = 3, difficulty = 0, inProgress = 0, isStart = 1, btnActive = 1, btnDelay = 300, clicks = 0;
+uint32_t btnLimit = 0, btnMin = 0;
+boolean btnLastState = HIGH;
 
 MD_MAX72XX mx = MD_MAX72XX(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
 MD_Parola P = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
@@ -125,12 +127,15 @@ void reset(int win) {
     }
   }
 
-  dir = 1; prevX = 0; curX = 0; curY = 0; len = 3; prevLen = 3; isStart = 1; btnActive = 1; btnLimit = 0; DELAYTIME = 150; //reset variables.
+  dir = 1; prevX = 0; curX = 0; curY = 0; len = 3; prevLen = 3; inProgress = 0; isStart = 1; btnActive = 1; btnLimit = 0; DELAYTIME = 150; clicks = 0; //reset variables.
   mx.clear();
 }
 
 void setup()
 {
+  button.attachDoubleClick(doubleClick); //link the function to be called on a doubleclick event.
+  button.attachClick(singleClick); //link the function to be called on a singleclick event.
+  
   mx.begin();
   pinMode(SWITCH_PIN, INPUT_PULLUP);
   Serial.begin(57600);
@@ -138,20 +143,36 @@ void setup()
   P.begin();
   P.setFont(StackerFont);
   P.setTextAlignment(PA_CENTER);
-  P.print("STACK");
+  P.print("STACKR");
   delay(1000);
   mx.clear();
 }
 
 void loop()
 {
-  if (digitalRead(SWITCH_PIN) == HIGH) doStacker();
+  if (inProgress) {
+    if (digitalRead(SWITCH_PIN) == HIGH) doStacker();
 
-  if (digitalRead(SWITCH_PIN) == LOW && btnActive && millis() > btnLimit) {
-    btnActive = 0;
-    btnLimit = millis() + btnDelay;
-    hitButton();
+    if (digitalRead(SWITCH_PIN) == LOW && btnActive && millis() > btnLimit) {
+      btnActive = 0;
+      btnLimit = millis() + btnDelay;
+      hitButton();
+    }
+  } else {
+    button.tick(); //check the status of the button for OneButton
   }
+}
+
+void singleClick() {
+  P.print((difficulty) ? "EASY" : "HARD");
+  difficulty = !difficulty;
+}
+
+void doubleClick() {
+  inProgress = 1;
+  mx.clear();
+  btnLimit = millis() + btnDelay;
+  delay(500);
 }
 
 void flash_every_other(){
