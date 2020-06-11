@@ -4,7 +4,6 @@
 #include <SPI.h>
 #include <OneButton.h>
 #include "Font5x3.h"
-#include "Parola_Fonts_data.h"
 
 // Use a button to transfer between transformations or just do it on a timer basis
 #define USE_SWITCH_INPUT  1
@@ -64,7 +63,7 @@ void hitButton() {
   }
   
   if (prevX != curX && prevX - prevLen != curX - len) { //if prevX and curX are different, or if prevX - prevLen are different to curX - len -- this is for when we do len--.
-    len = len - abs(curX - prevX); //set len to be current len minus the difference between curX and prevX.
+    len = (prevX < curX) ? len - abs(curX - prevX) : prevLen - abs(curX - prevX); //set len to be current len or prevLen depending on overhang direction minus the difference between curX and prevX.
     for (int i = 0; i < abs(curX - prevX); i++) { //iterate i for the difference between curX and prevX to remove 1 or 2 points.
       int j = (prevX < curX) ? curX - i : curX - len - i; //if overhang left, remove curX, else remove curX - len - i.
       mx.setPoint(j, curY, false); //remove overhang.
