@@ -13,9 +13,6 @@ OneButton button(9, true);
 // We always wait a bit between updates of the display
 static int DELAYTIME = 150;  // in milliseconds
 
-// Number of times to repeat the transformation animations
-#define REPEATS_PRESET  16
-
 // Define the number of devices we have in the chain and the hardware interface
 #define HARDWARE_TYPE MD_MAX72XX::ICSTATION_HW
 #define MAX_DEVICES   4
